@@ -4,40 +4,64 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         HOST (Next.js)                          │
-│  - Creates sandbox                                              │
-│  - Injects files (agent.js, tools.js, llm.js, spec.txt)        │
-│  - Runs: node agent.js                                          │
-│  - Streams stdout back to client                                │
-│  - Destroys sandbox after completion                            │
-│                 │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ Creates & Controls
-                              ▼
+│                        CLIENT (Browser)                         │
+│                    POST /api/agent { task }                     │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  │
+                                  ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    SANDBOX (Vercel MicroVM)                     │
-│                                                                 │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                      agent.js                             │  │
-│  │  - Iterative loop (MAX_STEPS = 5)                        │  │
-│  │  - Calls LLM for next action                             │  │
-│  │  - Executes tools based on LLM response                  │  │
-│  │  - Appends results to context                            │  │
-│  │  - Stops when {done: true}                               │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                              │                                  │
-│              Uses            │                                  │
-│                              ▼                                  │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌────────────────┐  │
-│  │    tools.js     │  │     llm.js      │  │   spec.txt     │  │
-│  │  - write_file   │  │  - OpenAI call  │  │  - Task spec   │  │
-│  │  - read_file    │  │  - Strict JSON  │  │                │  │
-│  │  - list_files   │  │  - No markdown  │  │                │  │
-│  │  - run_command  │  │                 │  │                │  │
-│  └─────────────────┘  └─────────────────┘  └────────────────┘  │
-│                                                                 │
-│                               
+│                     NEXT.JS API ROUTE                           │
+│                   src/app/api/agent/route.ts                    │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │ • Receives task from client                                │ │
+│  │ • Creates Vercel Sandbox (MicroVM)                         │ │
+│  │ • Injects agent files + environment variables              │ │
+│  │ • Executes: node agent/index.js                            │ │
+│  │ • Streams output back to client                            │ │
+│  └────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    VERCEL SANDBOX (MicroVM)                     │
+│              Isolated execution environment                      │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │                      AGENT LOOP                            │ │
+│  │                  agent/index.js                            │ │
+│  │  ┌──────────────────────────────────────────────────────┐  │ │
+│  │  │ 1. Read goal.txt (injected task)                     │  │ │
+│  │  │ 2. Call LLM for next action                          │  │ │
+│  │  │ 3. Execute tool (filesystem, git, build)             │  │ │
+│  │  │ 4. Loop until done or max steps                      │  │ │
+│  │  └──────────────────────────────────────────────────────┘  │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                              │                                   │
+│                              ▼                                   │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │                      TOOLS LAYER                           │ │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │ │
+│  │  │filesystem│ │   git    │ │  build   │ │ command  │      │ │
+│  │  │  .js     │ │   .js    │ │   .js    │ │   .js    │      │ │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘      │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                              │                                   │
+│                              ▼                                   │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │               CLONED REPOSITORY                            │ │
+│  │            cinema-portfolio (Next.js)                       │ │
+│  │  • Makes file changes                                      │ │
+│  │  • Runs npm install & build                                │ │
+│  │  • Commits and pushes to GitHub                            │ │
+│  └────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         EXTERNAL SERVICES                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │  OpenAI API  │  │    GitHub    │  │    Vercel    │          │
+│  │   (GPT-4o)   │  │  Repository  │  │  Deployment  │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
