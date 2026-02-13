@@ -1,7 +1,5 @@
 # Sandbox Coding Agent
 
-A sandbox-native coding agent where the agent's decision loop runs **entirely inside** a Vercel Sandbox. Built for the Questom YC-backed startup evaluation.
-
 ## Architecture Overview
 
 ```
@@ -12,9 +10,7 @@ A sandbox-native coding agent where the agent's decision loop runs **entirely in
 │  - Runs: node agent.js                                          │
 │  - Streams stdout back to client                                │
 │  - Destroys sandbox after completion                            │
-│                                                                 │
-│  ⚠️  NO tool execution happens here                             │
-│  ⚠️  NO agent orchestration happens here                        │
+│                 │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               │ Creates & Controls
@@ -41,25 +37,9 @@ A sandbox-native coding agent where the agent's decision loop runs **entirely in
 │  │  - run_command  │  │                 │  │                │  │
 │  └─────────────────┘  └─────────────────┘  └────────────────┘  │
 │                                                                 │
-│  🔒 Isolated Linux VM (Firecracker MicroVM)                     │
-│  🔒 No host filesystem access                                   │
-│  🔒 Destroyed after execution                                   │
+│                               
 └─────────────────────────────────────────────────────────────────┘
 ```
-
-## Build Layers
-
-| Layer | Description | Status |
-|-------|-------------|--------|
-| 1 | Infrastructure: Create sandbox, run echo, stream output, destroy | ✅ |
-| 2 | Static agent: Inject agent.js, run node agent.js, confirm logs | 🔲 |
-| 3 | Tool layer: write_file, read_file, list_files, run_command | 🔲 |
-| 4 | LLM integration: OpenAI call from llm.js with strict JSON | 🔲 |
-| 5 | Structured loop: MAX_STEPS, single tool per step, done condition | 🔲 |
-| 6 | Iterative repair: Use exitCode, feed stderr back, retry | 🔲 |
-| 7 | UI parsing: Timeline view, raw logs, lifecycle indicator | 🔲 |
-
-## Setup
 
 ### Prerequisites
 
@@ -130,6 +110,3 @@ Open [http://localhost:3000](http://localhost:3000)
 - No persistent storage after destruction
 - No access to host filesystem
 
-## License
-
-MIT
